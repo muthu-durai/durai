@@ -10,20 +10,26 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+var users = map[string]string{
+	"user1": "password1",
+	"user2": "password2",
+}
+
 func main() {
 	http.HandleFunc("/login", Login)
 	http.HandleFunc("/home", Home)
+	http.HandleFunc("/register", Register)
 	http.HandleFunc("/refresh", Refresh)
 	http.HandleFunc("/logout", Logout)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-var jwtKey = []byte("secret_key")
-
-var users = map[string]string{
-	"user1": "password1",
-	"user2": "password2",
+type User struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
+
+var jwtKey = []byte("secret_key")
 
 type Credentials struct {
 	Username string `json:"username"`
@@ -33,6 +39,22 @@ type Credentials struct {
 type Claims struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
+}
+
+func Register(w http.ResponseWriter, r *http.Request) {
+
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		log.Fatalf("Error: %f", err)
+		return
+	}
+	if _, ok := users[user.Username]; ok {
+		fmt.Fprint(w, "entered username already exit")
+		return
+	}
+	users[user.Username] = user.Password
+
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -148,8 +170,8 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) > 30*time.Second {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
+	//  w.WriteHeader(http.StatusBadRequest)
+	//  return
 	// }
 
 	expirationTime := time.Now().Add(time.Minute * 5)
